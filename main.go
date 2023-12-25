@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"time"
+
+	"github.com/fatih/color"
 )
 
 type Weather struct {
@@ -21,7 +25,7 @@ type Weather struct {
 	Forecast struct {
 		ForecastDay []struct {
 			Hour []struct {
-				TimeEpoch int64   `json:"timeepoch"`
+				TimeEpoch int64   `json:"time_epoch"`
 				TempC     float64 `json:"temp_c"`
 				Condition struct {
 					Text string `json:"text"`
@@ -33,7 +37,12 @@ type Weather struct {
 }
 
 func main() {
-	res, err := http.Get("http://api.weatherapi.com/v1/forecast.json?key=dda74783104147c4a99175136232512&q=Lucknow&days=1&aqi=no&alerts=no")
+	user := "London"
+
+	if len(os.Args) >= 2 {
+		user = os.Args[1]
+	}
+	res, err := http.Get("http://api.weatherapi.com/v1/forecast.json?key=dda74783104147c4a99175136232512&q=" + user + "&days=1&aqi=no&alerts=no")
 
 	if err != nil {
 		panic(err)
@@ -49,7 +58,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	var weather Weather
 
 	err = json.Unmarshal(body, &weather)
@@ -57,8 +65,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(weather)
-	location, current, _ := weather.Location, weather.Current, weather.Forecast.ForecastDay[0].Hour
+	location, current, hours := weather.Location, weather.Current, weather.Forecast.ForecastDay[0].Hour
 
 	fmt.Printf("Currently %s %s %0.fC %s\n",
 		location.Name,
@@ -66,5 +73,26 @@ func main() {
 		current.TempC,
 		current.Condition.Text,
 	)
+
+	for _, hour := range hours {
+		date := time.Unix(hour.TimeEpoch, 0)
+
+		// println(hour.TimeEpoch)
+
+		if date.Before(time.Now()) {
+			continue
+		}
+		messaage := fmt.Sprintf("%s %0.fC %0.f%% %s\n",
+			date.Format("15:04"),
+			hour.TempC,
+			hour.Chanceofrain,
+			hour.Condition.Text,
+		)
+		if hour.Chanceofrain > 40 {
+			color.Red(messaage)
+		} else {
+			color.Green(messaage)
+		}
+	}
 
 }
