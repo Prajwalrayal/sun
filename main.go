@@ -50,7 +50,7 @@ func main() {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		panic("Weather Api not working")
+		panic("No data Available")
 	}
 
 	body, err := io.ReadAll(res.Body)
